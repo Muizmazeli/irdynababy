@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A LEGO bouquet for Irdyna</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#ffd9ea;--ink:#3b2147;--muted:#8a5a8f;--btn:#ff6fa5;--btnink:#fff;--field:#fff;--line:#3b2147;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#3a1646;--ink:#ffe8f1;--muted:#d9b0e6;--btn:#ff8fb8;--btnink:#2a1030;--field:#4c2160;--line:#ffe8f1;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#3a1646;--ink:#ffe8f1;--muted:#d9b0e6;--btn:#ff8fb8;--btnink:#2a1030;--field:#4c2160;--line:#ffe8f1;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Baloo 2",ui-rounded,"Arial Rounded MT Bold",system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px 28px;overflow-x:hidden}
+h1{font-size:clamp(28px,7vw,44px);font-weight:800;margin:0;text-align:center;line-height:1.1}
+.name{font:inherit;font-weight:800;color:var(--btn);background:transparent;border:0;border-bottom:4px dotted var(--btn);width:5.5em;text-align:center;padding:0;outline:none}
+.name:focus-visible{outline:3px solid var(--ink);outline-offset:4px;border-radius:6px}
+.hint{color:var(--muted);margin:6px 0 0;text-align:center;font-weight:500}
+svg{width:100%;max-width:520px;height:auto;margin-top:6px;touch-action:manipulation}
+.drop{animation:drop .7s cubic-bezier(.3,1.5,.5,1) both;animation-delay:var(--d)}
+@keyframes drop{from{transform:translateY(-460px);opacity:0}60%{opacity:1}to{transform:none;opacity:1}}
+.head{cursor:pointer;transform-box:fill-box;transform-origin:center}
+.head:focus-visible{outline:none;filter:drop-shadow(0 0 5px var(--ink))}
+.wig{animation:wig .5s ease}
+@keyframes wig{0%{transform:scale(1) rotate(0)}30%{transform:scale(1.2) rotate(-10deg)}60%{transform:scale(1.1) rotate(8deg)}100%{transform:scale(1) rotate(0)}}
+.vase{cursor:pointer}
+.tw{pointer-events:none;animation:tw 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes tw{50%{opacity:.25;transform:scale(.6)}}
+.note{margin-top:12px;max-width:420px;width:100%;min-height:3.4em;display:flex;align-items:center;justify-content:center;background:var(--field);border:3px solid var(--line);border-radius:18px;padding:12px 18px;text-align:center;font-weight:700;font-size:18px;line-height:1.3;box-shadow:0 5px 0 var(--line)}
+.bar{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+button{font:inherit;font-weight:700;font-size:17px;background:var(--btn);color:var(--btnink);border:3px solid var(--line);border-radius:12px;padding:8px 18px;cursor:pointer;box-shadow:0 5px 0 var(--line);transition:transform .1s,box-shadow .1s}
+button:active{transform:translateY(4px);box-shadow:0 1px 0 var(--line)}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+#count{margin-top:14px;color:var(--muted);font-weight:700}
+.heart{position:fixed;bottom:-30px;font-size:30px;pointer-events:none;animation:fly 2.6s ease-in forwards;z-index:9}
+@keyframes fly{to{transform:translateY(-110vh) rotate(var(--r));opacity:0}}
+@media (prefers-reduced-motion:reduce){.drop,.wig,.heart{animation-duration:.01s;animation-delay:0s}.tw{animation:none}}
+</style>
+</head>
+<body>
+<h1>Little bricks, big love<br>for <input class="name" id="nm" value="Irdyna" maxlength="18" aria-label="Name"></h1>
+<p class="hint">Tap each flower to open its wish. Tap the vase to repaint it.</p>
+<svg id="s" viewBox="0 0 400 560" role="img" aria-label="A LEGO bouquet of pink orchids, roses, tulips and cherry blossoms in a black vase"></svg>
+<div class="note" id="note" aria-live="polite"></div>
+<div class="bar"><button id="rb">Rebuild</button><button id="sh">Shuffle colors</button><button id="lv">Send love</button></div>
+<div id="count"></div>
+<script>
+const NS="http://www.w3.org/2000/svg",ST="rgba(0,0,0,.3)";
+const SH=[["#8e44d6","#c49bff"],["#f5802f","#ffb98a"],["#e3000b","#ff7a85"],["#0a8fd8","#8fd3ff"]];
+const V=a=>[a].concat(SH),VASE=["#25232b","#3b2147","#14213d","#7a1f4f"];
+const WISH=["{n}, may your days be soft and full of giggles.","{n}, stay curious about everything around you.","{n}, you are so, so loved. Every single day.","May you grow up brave and kind, {n}.","Dream big, {n}. We\u2019ll build it together, brick by brick."];
+const svg=document.getElementById("s");let n=0,w=0,vi=0,vr=[];
+const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const P=(d,p)=>el("path",{d,stroke:ST,"stroke-width":2,"stroke-linejoin":"round"},p);
+const drop=(p,d)=>{const g=el("g",{class:"drop"},p);g.style.setProperty("--d",d+"s");n++;return g};
+const nm=()=>document.getElementById("nm").value.trim()||"baby";
+function say(i){document.getElementById("note").textContent=i<0?"Every brick is a little wish for "+nm()+". Tap a flower to read it.":"\u2665 "+WISH[i%5].replace(/\{n\}/g,nm())}
+function orchid(h,A){for(let i=0;i<5;i++){const g=el("g",{transform:"rotate("+i*72+")"},h);A.push({e:P("M0 0C-17 -18 -15 -48 0 -60C15 -48 17 -18 0 0Z",g),k:i%2})}
+  el("ellipse",{cy:4,rx:10,ry:13,fill:"#fff",stroke:ST,"stroke-width":2},h);el("ellipse",{cy:-1,rx:5,ry:7,fill:"#b79bff"},h);el("circle",{cy:-11,r:3,fill:"#ffe27a"},h)}
+function rose(h,A,f){[1,.78,.58,.38,.18].forEach((m,i)=>A.push({e:el("circle",{r:f.R*m,stroke:ST,"stroke-width":2},h),k:i%2}));el("circle",{cx:-3,cy:-3,r:4,fill:"rgba(255,255,255,.45)"},h)}
+function bud(h,A){A.push({e:P("M-20 0C-26 -30 -10 -48 0 -50C10 -48 26 -30 20 0C10 8 -10 8 -20 0Z",h),k:0},{e:P("M-5 4C-13 -20 -5 -40 0 -46C5 -40 13 -20 5 4Z",h),k:1});el("circle",{cy:-26,r:4,fill:"rgba(255,255,255,.45)"},h)}
+function blossoms(h,A,f){(f.pts||[[48,190],[62,215],[35,242],[82,182],[75,262],[100,205],[45,160],[110,250]]).forEach((p,i)=>{const g=el("g",{transform:"translate("+p+")"},h);
+  for(let k=0;k<5;k++){const a=k*1.2566;A.push({e:el("circle",{cx:Math.cos(a)*6,cy:Math.sin(a)*6,r:5,stroke:ST,"stroke-width":1.5},g),k:i%2})}el("circle",{r:2.6,fill:"#ffd23f"},g)})}
+const F=[
+{x:175,y:105,s:1,d:orchid,v:V(["#d6246e","#f0629f"])},
+{x:110,y:225,s:1.1,r:-12,d:orchid,v:V(["#e0307a","#ff7ab4"])},
+{x:295,y:262,s:1,r:-8,d:bud,v:V(["#e9a6d4","#f6cfe6"])},
+{x:320,y:322,s:.95,r:14,d:bud,v:V(["#f0b6dc","#f9dcee"])},
+{x:290,y:362,s:.9,r:-6,d:bud,v:V(["#e9a6d4","#f6cfe6"])},
+{x:0,y:0,s:1,d:blossoms,v:V(["#ff8fc7","#ffffff"])},
+{x:92,y:345,s:1,R:38,d:rose,v:V(["#d94a9c","#f27bbd"]),front:1},
+{x:200,y:335,s:1,R:30,d:rose,v:V(["#f4a3c8","#ffd1e3"]),front:1},
+{x:255,y:150,s:.9,r:15,d:orchid,v:V(["#c21a63","#ee5c9a"])},
+{x:62,y:105,s:.8,r:-15,d:orchid,v:V(["#e0307a","#ff7ab4"])},
+{x:125,y:140,s:1,R:30,d:rose,v:V(["#f7b7d6","#ffe0ee"])},
+{x:335,y:205,s:1,R:27,d:rose,v:V(["#e86aa8","#ffa6cf"])},
+{x:352,y:275,s:.85,r:22,d:bud,v:V(["#f0b6dc","#f9dcee"])},
+{x:50,y:300,s:.9,r:-20,d:bud,v:V(["#e9a6d4","#f6cfe6"])},
+{x:215,y:215,s:.85,r:-8,d:orchid,v:V(["#d6246e","#f0629f"])},
+{x:345,y:385,s:.8,r:26,d:bud,v:V(["#f0b6dc","#f9dcee"])},
+{x:35,y:395,s:.8,r:-28,d:bud,v:V(["#e9a6d4","#f6cfe6"])},
+{x:0,y:0,s:1,d:blossoms,pts:[[340,100],[362,128],[330,140],[372,95],[355,160]],v:V(["#ff8fc7","#ffffff"])},
+{x:0,y:0,s:1,d:blossoms,pts:[[135,50],[210,40],[110,80],[250,75],[300,95]],v:V(["#ffd1e3","#ffffff"])},
+{x:150,y:292,s:1,R:27,d:rose,v:V(["#d94a9c","#f27bbd"]),front:1},
+{x:262,y:305,s:1,R:28,d:rose,v:V(["#f4a3c8","#ffd1e3"]),front:1},
+{x:165,y:393,s:1,R:23,d:rose,v:V(["#e86aa8","#ffa6cf"]),front:1},
+{x:238,y:395,s:1,R:22,d:rose,v:V(["#d94a9c","#f27bbd"]),front:1}];
+function paint(f){const v=f.v[f.vi];f.parts.forEach(p=>p.e.setAttribute("fill",v[p.k]))}
+function add(f,dl){f.vi=f.vi||0;const o=drop(svg,dl),pos=el("g",{transform:"translate("+f.x+" "+f.y+") rotate("+(f.r||0)+") scale("+f.s+")"},o);
+  const h=el("g",{class:"head",tabindex:0,role:"button","aria-label":"Open a wish"},pos),i=w++;f.parts=[];f.d(h,f.parts,f);paint(f);n+=f.parts.length;
+  const go=()=>{f.vi=(f.vi+1)%f.v.length;paint(f);say(i);h.classList.remove("wig");void h.getBoundingClientRect();h.classList.add("wig")};
+  h.addEventListener("click",go);h.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}})}
+function leaf(x,y,r,s,c,dl){const g=el("g",{transform:"translate("+x+" "+y+") rotate("+r+") scale("+s+")"},drop(svg,dl));
+  el("path",{d:"M0 0C14 -14 14 -40 0 -62C-14 -40 -14 -14 0 0Z",fill:c,stroke:ST,"stroke-width":2,"stroke-linejoin":"round"},g);el("path",{d:"M0 -6V-50",stroke:"rgba(255,255,255,.35)","stroke-width":2,fill:"none"},g)}
+const line=(d,c,wd,p)=>el("path",{d,fill:"none",stroke:c,"stroke-width":wd,"stroke-linecap":"round"},p);
+function build(){
+  svg.innerHTML="";vr=[];n=0;w=0;
+  F.filter(f=>f.d!==blossoms).forEach((f,i)=>{const sx=140+(i*37)%120,my=(420+f.y)/2;line("M"+sx+" 420C"+sx+" "+my+" "+f.x+" "+my+" "+f.x+" "+f.y,"#2f8f5b",5,drop(svg,i*.05))});
+  const br=drop(svg,.3);["M150 420C125 360 85 305 60 235","M95 300C70 285 55 250 35 242","M80 270C100 235 95 205 100 205","M62 240C45 220 50 200 48 190","M70 215L82 182","M110 250L75 262"].forEach(d=>line(d,"#7a4a2b",5,br));
+  const sp=drop(svg,.5);line("M268 420C275 330 280 230 285 150","#2f8f5b",4,sp);
+  [[275,158],[293,174],[277,194],[294,210],[278,228],[292,246]].forEach(p=>el("circle",{cx:p[0],cy:p[1],r:9,fill:"#58c487",stroke:ST,"stroke-width":2},sp));n+=6;
+  leaf(150,418,-65,1.15,"#1f7a4a",.5);leaf(250,418,65,1.15,"#2f9a5f",.55);leaf(215,418,15,1,"#1f7a4a",.6);
+  [[110,330,-50,1.3],[235,250,35,1.2],[330,260,55,1.2],[70,290,-75,1.2],[190,200,-20,1.1],[300,200,40,1.1],[40,200,-60,1.1],[360,330,70,1.2],[25,350,-80,1.2],[380,220,80,1],[95,170,-35,1],[180,150,10,1]].forEach((a,i)=>leaf(a[0],a[1],a[2],a[3],i%2?"#2f9a5f":"#1f7a4a",.5+i*.03));
+  [[20,140],[385,170],[378,250],[14,270],[388,330],[16,440],[384,440],[95,55],[300,60],[190,70],[75,175],[320,330],[230,270],[110,300],[185,260],[285,215],[255,235],[135,225],[30,200],[390,110]].forEach((p,i)=>{const g=drop(svg,.9+i*.03);[[0,0],[7,-5],[-6,-6],[3,5]].forEach(o=>el("circle",{cx:p[0]+o[0],cy:p[1]+o[1],r:3,fill:"#fff",stroke:ST,"stroke-width":1},g));n+=4});
+  el("rect",{x:-20,y:530,width:440,height:40,fill:"#1d1522"},svg);
+  F.filter(f=>!f.front).forEach((f,i)=>add(f,.7+i*.12));
+  const vg=el("g",{class:"vase",tabindex:0,role:"button","aria-label":"Repaint vase"},drop(svg,1.4));
+  vr.push(el("rect",{x:125,y:410,width:150,height:130,rx:6,fill:VASE[vi],stroke:ST,"stroke-width":2},vg));
+  el("rect",{x:131,y:418,width:14,height:116,rx:4,fill:"rgba(255,255,255,.12)"},vg);el("rect",{x:125,y:410,width:150,height:9,rx:4,fill:"rgba(0,0,0,.45)"},vg);n+=3;
+  const rp=()=>{vi=(vi+1)%VASE.length;vr[0].setAttribute("fill",VASE[vi])};
+  vg.addEventListener("click",rp);vg.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();rp()}});
+  const vl=el("text",{class:"vl",x:200,y:490,"text-anchor":"middle","font-size":19,"font-weight":800,fill:"#ffb3d1","pointer-events":"none"},svg);vl.textContent="\u2665 "+nm()+" \u2665";
+  F.filter(f=>f.front).forEach((f,i)=>add(f,1.7+i*.15));
+  leaf(135,420,-40,1.25,"#2f9a5f",1.9);leaf(268,420,40,1.25,"#1f7a4a",1.95);leaf(240,416,58,1,"#2f9a5f",2);leaf(152,418,-88,.9,"#1f7a4a",2.05);
+  const bg=drop(svg,2.1);[[255,372],[263,366],[262,378],[270,372],[258,360],[270,384]].forEach(p=>el("circle",{cx:p[0],cy:p[1],r:4,fill:"#ffe27a",stroke:ST,"stroke-width":1.5},bg));n+=6;
+  [[30,70],[365,60],[372,300],[22,380],[205,20]].forEach((p,k)=>{const t=el("text",{class:"tw","text-anchor":"middle",x:p[0],y:p[1],"font-size":22,fill:k%2?"#c7a6ff":"#ffb300"},svg);t.textContent="\u2726";t.style.animationDelay=k*.5+"s"});
+  document.getElementById("count").textContent="Built with "+n+" bricks and 5 wishes \u2665";say(-1);
+}
+function love(){for(let i=0;i<16;i++){const h=document.createElement("span");h.className="heart";h.textContent="\u2665";
+  h.style.left=Math.random()*95+"vw";h.style.fontSize=20+Math.random()*28+"px";h.style.animationDelay=Math.random()*.8+"s";h.style.setProperty("--r",(Math.random()*60-30)+"deg");
+  h.style.color=["#ff6fa5","#ff8fb8","#c7a6ff","#ffb38a","#8fd3ff"][Math.floor(Math.random()*5)];document.body.appendChild(h);setTimeout(()=>h.remove(),3600)}}
+document.getElementById("nm").oninput=()=>{const t=svg.querySelector(".vl");if(t)t.textContent="\u2665 "+nm()+" \u2665";say(-1)};
+document.getElementById("rb").onclick=build;
+document.getElementById("sh").onclick=()=>F.forEach(f=>{f.vi=Math.floor(Math.random()*f.v.length);paint(f)});
+document.getElementById("lv").onclick=love;
+build();
+</script>
+</body>
+</html>
